@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ronda — Knowledge Base</title>
+<style>
+  :root {
+    --plum: #2E002E; --purple: #8C3EF6; --purple-light: #F3EBFF;
+    --orange: #FF7A00; --grey: #6B6570; --border: #E4E1E8; --bg: #FAFAFB; --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: #222; }
+  header.topbar {
+    background: var(--plum); color: white; padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  header.topbar .brand { display: flex; align-items: center; gap: 12px; }
+  header.topbar .logo-dot { width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--purple); }
+  header.topbar h1 { font-size: 17px; margin: 0; font-weight: 700; }
+  header.topbar .subtitle { font-size: 11px; color: #D9C6E8; margin-top: 2px; }
+  header.topbar nav { display: flex; align-items: center; gap: 18px; font-size: 13px; }
+  header.topbar nav a { color: white; text-decoration: none; opacity: 0.85; }
+  header.topbar nav a:hover { opacity: 1; text-decoration: underline; }
+  header.topbar .who { font-size: 12px; color: #D9C6E8; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 22px 28px 60px; display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+
+  .sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; height: fit-content; }
+  .sidebar input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; margin-bottom: 12px; box-sizing: border-box; }
+  .cat-list { list-style: none; padding: 0; margin: 0; }
+  .cat-list li { padding: 7px 8px; font-size: 13px; border-radius: 6px; cursor: pointer; color: var(--grey); }
+  .cat-list li:hover { background: var(--purple-light); }
+  .cat-list li.active { background: var(--purple); color: white; font-weight: 700; }
+
+  .main { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .btn { background: var(--purple); color: white; border: none; border-radius: 6px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn.secondary { background: white; color: var(--plum); border: 1px solid var(--border); font-weight: 500; }
+  .btn.danger { background: #C0392B; }
+
+  .article-item { border-bottom: 1px solid var(--border); padding: 14px 0; cursor: pointer; }
+  .article-item:last-child { border-bottom: none; }
+  .article-item h3 { margin: 0 0 4px; font-size: 15px; color: var(--plum); }
+  .article-item .meta { font-size: 11px; color: var(--grey); }
+  .article-item .snippet { font-size: 12.5px; color: #555; margin-top: 4px; }
+
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--grey); }
+
+  .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
+  .overlay.show { display: flex; }
+  .modal { width: 640px; max-width: 92%; max-height: 86vh; overflow-y: auto; background: white; border-radius: 12px; padding: 24px; }
+  .modal h2 { margin-top: 0; font-size: 17px; color: var(--plum); }
+  .modal label { display: block; font-size: 12px; font-weight: 700; color: var(--plum); margin: 12px 0 4px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: Arial, sans-serif;
+  }
+  .modal textarea { min-height: 220px; resize: vertical; }
+  .modal-footer { display: flex; justify-content: space-between; margin-top: 18px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--plum); color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 200; display: none; }
+  .toast.show { display: block; }
+  .view-panel h2 { color: var(--plum); margin-top: 0; }
+  .view-panel .meta { font-size: 12px; color: var(--grey); margin-bottom: 16px; }
+  .view-panel .content { white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+  .view-actions { margin-top: 20px; display: flex; gap: 8px; }
+  .back-link { font-size: 13px; color: var(--purple); cursor: pointer; margin-bottom: 14px; display: inline-block; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo-dot"></div>
+    <div>
+      <h1>Knowledge Base</h1>
+      <div class="subtitle">Ronda Vet Locums &middot; shared across the team</div>
+    </div>
+  </div>
+  <nav>
+    <a href="/">Tracker</a>
+    <a href="/kb">Knowledge base</a>
+    <span class="who">Signed in as {{ who }}</span>
+    <a href="/logout">Sign out</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="sidebar">
+    <input type="text" id="search-box" placeholder="Search articles...">
+    <ul class="cat-list" id="cat-list"></ul>
+  </div>
+
+  <div class="main" id="main-panel">
+    <div class="main-header">
+      <div id="panel-title" style="font-weight:700; color: var(--plum);">All articles</div>
+      <button class="btn" id="new-article-btn">+ New article</button>
+    </div>
+    <div id="article-list"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modal-title">New article</h2>
+    <label>Title</label>
+    <input type="text" id="f-title" placeholder="e.g. How to reset a locum's verification status">
+    <label>Category</label>
+    <input type="text" id="f-category" placeholder="e.g. Verification, Invoicing, App issues, Off-platform SOP">
+    <label>Content</label>
+    <textarea id="f-content" placeholder="Write the article content here..."></textarea>
+    <div class="modal-footer">
+      <button class="btn danger" id="delete-article-btn" style="display:none;">Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn secondary" id="cancel-btn">Cancel</button>
+      <button class="btn" id="save-article-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let articles = [];
+let currentId = null;
+let activeCategory = '';
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function loadArticles() {
+  try {
+    const res = await fetch('/api/kb');
+    articles = await res.json();
+  } catch (e) {
+    articles = [];
+    toast('Could not load knowledge base');
+  }
+  renderCategories();
+  renderArticles();
+}
+
+function renderCategories() {
+  const cats = Array.from(new Set(articles.map(a => a.category).filter(Boolean))).sort();
+  const list = document.getElementById('cat-list');
+  list.innerHTML = '';
+  const allLi = document.createElement('li');
+  allLi.textContent = 'All articles (' + articles.length + ')';
+  allLi.className = activeCategory === '' ? 'active' : '';
+  allLi.onclick = () => { activeCategory = ''; renderCategories(); renderArticles(); };
+  list.appendChild(allLi);
+  cats.forEach(cat => {
+    const count = articles.filter(a => a.category === cat).length;
+    const li = document.createElement('li');
+    li.textContent = cat + ' (' + count + ')';
+    li.className = activeCategory === cat ? 'active' : '';
+    li.onclick = () => { activeCategory = cat; renderCategories(); renderArticles(); };
+    list.appendChild(li);
+  });
+}
+
+function renderArticles() {
+  const q = document.getElementById('search-box').value.trim().toLowerCase();
+  let rows = articles.filter(a => {
+    if (activeCategory && a.category !== activeCategory) return false;
+    if (q) {
+      const hay = ((a.title||'') + ' ' + (a.content||'') + ' ' + (a.category||'')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  document.getElementById('panel-title').textContent = activeCategory || 'All articles';
+  const wrap = document.getElementById('article-list');
+  if (!articles.length) {
+    wrap.innerHTML = '<div class="empty-state">No articles yet.<br><button class="btn" style="margin-top:10px;" onclick="document.getElementById(\'new-article-btn\').click()">+ Write the first one</button></div>';
+    return;
+  }
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="empty-state">No articles match.</div>';
+    return;
+  }
+  wrap.innerHTML = rows.map(a =>
+    '<div class="article-item" onclick="viewArticle(\'' + a.id + '\')">' +
+    '<h3>' + (a.title || 'Untitled') + '</h3>' +
+    '<div class="meta">' + (a.category || 'Uncategorised') + ' &middot; updated ' + (a.updatedAt||'').slice(0,10) + ' by ' + (a.author||'Unknown') + '</div>' +
+    '<div class="snippet">' + (a.content||'').slice(0,140) + ((a.content||'').length>140?'...':'') + '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function viewArticle(id) {
+  const a = articles.find(x => x.id === id);
+  if (!a) return;
+  const wrap = document.getElementById('article-list');
+  document.getElementById('panel-title').textContent = a.category || 'Article';
+  wrap.innerHTML = '<div class="view-panel">' +
+    '<span class="back-link" onclick="renderArticles()">&larr; Back to list</span>' +
+    '<h2>' + (a.title||'') + '</h2>' +
+    '<div class="meta">' + (a.category||'') + ' &middot; updated ' + (a.updatedAt||'').slice(0,10) + ' by ' + (a.author||'Unknown') + '</div>' +
+    '<div class="content">' + (a.content||'').replace(/</g,'&lt;') + '</div>' +
+    '<div class="view-actions"><button class="btn secondary" onclick="openEdit(\'' + id + '\')">Edit</button></div>' +
+    '</div>';
+}
+
+function openNew() {
+  currentId = null;
+  document.getElementById('modal-title').textContent = 'New article';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-category').value = activeCategory || '';
+  document.getElementById('f-content').value = '';
+  document.getElementById('delete-article-btn').style.display = 'none';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function openEdit(id) {
+  const a = articles.find(x => x.id === id);
+  if (!a) return;
+  currentId = id;
+  document.getElementById('modal-title').textContent = 'Edit article';
+  document.getElementById('f-title').value = a.title || '';
+  document.getElementById('f-category').value = a.category || '';
+  document.getElementById('f-content').value = a.content || '';
+  document.getElementById('delete-article-btn').style.display = 'inline-block';
+  document.getElementById('overlay').classList.add('show');
+}
+
+async function handleSave() {
+  const payload = {
+    id: currentId || undefined,
+    title: document.getElementById('f-title').value.trim(),
+    category: document.getElementById('f-category').value.trim(),
+    content: document.getElementById('f-content').value
+  };
+  try {
+    const res = await fetch('/api/kb', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error();
+    toast('Article saved');
+    document.getElementById('overlay').classList.remove('show');
+    await loadArticles();
+  } catch (e) {
+    toast('Could not save — try again');
+  }
+}
+
+async function handleDelete() {
+  if (!currentId) return;
+  if (!confirm('Delete this article?')) return;
+  try {
+    await fetch('/api/kb/' + currentId, { method: 'DELETE' });
+    toast('Article deleted');
+    document.getElementById('overlay').classList.remove('show');
+    await loadArticles();
+  } catch (e) {
+    toast('Could not delete');
+  }
+}
+
+document.getElementById('new-article-btn').addEventListener('click', openNew);
+document.getElementById('cancel-btn').addEventListener('click', () => document.getElementById('overlay').classList.remove('show'));
+document.getElementById('save-article-btn').addEventListener('click', handleSave);
+document.getElementById('delete-article-btn').addEventListener('click', handleDelete);
+document.getElementById('search-box').addEventListener('input', renderArticles);
+document.getElementById('overlay').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('show'); });
+
+loadArticles();
+</script>
+
+</body>
+</html>

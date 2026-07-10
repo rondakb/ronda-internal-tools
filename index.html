@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ronda — Off-Platform Activity Tracker</title>
+<style>
+  :root {
+    --plum: #2E002E;
+    --purple: #8C3EF6;
+    --purple-light: #F3EBFF;
+    --orange: #FF7A00;
+    --orange-light: #FFF1E6;
+    --red: #C0392B;
+    --red-light: #FBEAEA;
+    --green: #1D7A4C;
+    --green-light: #E9F6EF;
+    --gold: #B8860B;
+    --gold-light: #FFFDF5;
+    --grey: #6B6570;
+    --border: #E4E1E8;
+    --bg: #FAFAFB;
+    --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: #222; }
+  header.topbar {
+    background: var(--plum); color: white; padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  header.topbar .brand { display: flex; align-items: center; gap: 12px; }
+  header.topbar .logo-dot { width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--purple); }
+  header.topbar h1 { font-size: 17px; margin: 0; font-weight: 700; }
+  header.topbar .subtitle { font-size: 11px; color: #D9C6E8; margin-top: 2px; }
+  header.topbar nav { display: flex; align-items: center; gap: 18px; font-size: 13px; }
+  header.topbar nav a { color: white; text-decoration: none; opacity: 0.85; }
+  header.topbar nav a:hover { opacity: 1; text-decoration: underline; }
+  header.topbar .who { font-size: 12px; color: #D9C6E8; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 22px 28px 60px; }
+
+  .summary-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 22px; }
+  .metric { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .metric .label { font-size: 11px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.03em; }
+  .metric .value { font-size: 24px; font-weight: 700; color: var(--plum); margin-top: 4px; }
+  .metric.warn .value { color: var(--orange); }
+  .metric.danger .value { color: var(--red); }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; margin-bottom: 16px;
+  }
+  .toolbar select, .toolbar input[type=text] {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: white;
+  }
+  .toolbar input[type=text] { min-width: 200px; }
+  .btn {
+    background: var(--purple); color: white; border: none; border-radius: 6px;
+    padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .btn:hover { background: #7a2ee0; }
+  .btn.secondary { background: white; color: var(--plum); border: 1px solid var(--border); font-weight: 500; }
+  .btn.secondary:hover { background: #f5f2f8; }
+  .btn.danger { background: var(--red); }
+  .spacer { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  thead th {
+    background: var(--plum); color: white; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 10px 12px; text-align: left; white-space: nowrap;
+  }
+  tbody td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:hover { background: var(--purple-light); cursor: pointer; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .pill-practice { background: var(--purple-light); color: var(--purple); }
+  .pill-locum { background: var(--orange-light); color: var(--orange); }
+  .pill-active { background: var(--green-light); color: var(--green); }
+  .pill-restricted { background: var(--orange-light); color: var(--orange); }
+  .pill-suspended { background: var(--red-light); color: var(--red); }
+  .pill-terminated { background: #2C2C2A; color: white; }
+  .pill-notconfirmed { background: var(--green-light); color: var(--green); }
+  .pill-pending { background: #F0F0F0; color: var(--grey); }
+  .pill-confirmed1 { background: var(--orange-light); color: var(--orange); }
+  .pill-confirmedrepeat { background: var(--red-light); color: var(--red); }
+  .pill-repeat { background: var(--gold-light); color: var(--gold); border: 1px solid var(--gold); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--grey); }
+  .empty-state .btn { margin-top: 14px; }
+
+  .overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.35); z-index: 100; align-items: stretch; justify-content: flex-end;
+  }
+  .overlay.show { display: flex; }
+  .drawer { width: 640px; max-width: 100%; background: var(--card); height: 100%; overflow-y: auto; box-shadow: -6px 0 24px rgba(0,0,0,0.15); }
+  .drawer-header {
+    background: var(--plum); color: white; padding: 18px 24px; display: flex;
+    justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2;
+  }
+  .drawer-header h2 { font-size: 16px; margin: 0; }
+  .drawer-header .close-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+  .drawer-body { padding: 20px 24px 40px; }
+  .field-group { margin-bottom: 16px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--plum); margin-bottom: 4px; }
+  .drawer-body input[type=text], .drawer-body input[type=date], .drawer-body input[type=number],
+  .drawer-body select, .drawer-body textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 13px; font-family: Arial, sans-serif;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+  legend { font-size: 12px; font-weight: 700; color: var(--purple); padding: 0 6px; }
+  .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .checkbox-row { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; }
+  .checkbox-row input { width: auto; margin-top: 2px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--plum); margin: 20px 0 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .repeat-flag { background: var(--gold-light); border: 1px solid var(--gold); color: var(--gold); padding: 8px 10px; border-radius: 6px; font-size: 12px; margin-bottom: 14px; display: none; }
+  .repeat-flag.show { display: block; }
+  .notes-log { border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-height: 220px; overflow-y: auto; margin-bottom: 10px; background: #FAFAFA; }
+  .note-entry { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .note-entry:last-child { border-bottom: none; }
+  .note-entry .meta { color: var(--grey); font-size: 11px; margin-bottom: 2px; }
+  .add-note-row { display: flex; gap: 8px; }
+  .add-note-row textarea { flex: 1; min-height: 40px; }
+  .drawer-footer { position: sticky; bottom: 0; background: var(--card); border-top: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 10px; justify-content: space-between; }
+  .hint { font-size: 11px; color: var(--grey); margin-top: 3px; }
+  .conditional { display: none; }
+  .conditional.show { display: block; }
+  .loading-msg { text-align: center; padding: 40px; color: var(--grey); }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--plum); color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 200; display: none;
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo-dot"></div>
+    <div>
+      <h1>Off-Platform Activity Tracker</h1>
+      <div class="subtitle">Ronda Vet Locums &middot; shared across the team</div>
+    </div>
+  </div>
+  <nav>
+    <a href="/">Tracker</a>
+    <a href="/kb">Knowledge base</a>
+    <span class="who">Signed in as {{ who }}</span>
+    <a href="/logout">Sign out</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="summary-strip" id="summary-strip"></div>
+
+  <div class="toolbar">
+    <select id="filter-party">
+      <option value="">All parties</option>
+      <option value="Practice">Practice</option>
+      <option value="Locum">Locum</option>
+    </select>
+    <select id="filter-stage">
+      <option value="">All stages</option>
+      <option value="Pre-investigation">Pre-investigation</option>
+      <option value="Stage 1">Stage 1</option>
+      <option value="Stage 2">Stage 2</option>
+      <option value="Stage 3">Stage 3</option>
+      <option value="Stage 4">Stage 4</option>
+    </select>
+    <select id="filter-outcome">
+      <option value="">All outcomes</option>
+      <option value="Pending">Pending</option>
+      <option value="Not confirmed">Not confirmed</option>
+      <option value="Confirmed - First instance">Confirmed - First instance</option>
+      <option value="Confirmed - Repeat">Confirmed - Repeat</option>
+    </select>
+    <select id="filter-status">
+      <option value="">All account statuses</option>
+      <option value="Active">Active</option>
+      <option value="Restricted">Restricted</option>
+      <option value="Suspended">Suspended</option>
+      <option value="Terminated">Terminated</option>
+    </select>
+    <input type="text" id="search-box" placeholder="Search practice or locum name...">
+    <div class="spacer"></div>
+    <button class="btn secondary" id="refresh-btn">Refresh</button>
+    <button class="btn" id="new-case-btn">+ New case</button>
+  </div>
+
+  <div id="table-wrap"><div class="loading-msg">Loading cases...</div></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="drawer">
+    <div class="drawer-header">
+      <h2 id="drawer-title">New case</h2>
+      <button class="close-btn" id="close-drawer">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="repeat-flag" id="repeat-flag"></div>
+
+      <div class="field-group">
+        <label>Party type</label>
+        <select id="f-partyType">
+          <option value="Practice">Practice</option>
+          <option value="Locum">Locum</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label>Practice name</label>
+          <input type="text" id="f-practiceName" placeholder="e.g. Rugby Vet Hospital">
+        </div>
+        <div class="field-group">
+          <label>Locum name(s) involved</label>
+          <input type="text" id="f-locumNames" placeholder="e.g. Hannah Ellerton">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label>Date first flagged</label>
+          <input type="date" id="f-dateFlagged">
+        </div>
+        <div class="field-group">
+          <label>Flagged by</label>
+          <select id="f-flaggedBy">
+            <option>Dona</option>
+            <option>Katy</option>
+            <option>Ibra</option>
+            <option>Dimitra</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Triggers observed</legend>
+        <div class="checkbox-grid" id="trigger-checkboxes"></div>
+      </fieldset>
+
+      <div class="field-group">
+        <label>Evidence summary</label>
+        <textarea id="f-evidenceSummary" placeholder="What was found — dates, message excerpts, patterns..."></textarea>
+      </div>
+      <div class="field-group">
+        <label>Evidence location</label>
+        <input type="text" id="f-evidenceLocation" placeholder="e.g. Drive folder link, ticket #, screenshot filename">
+      </div>
+
+      <div class="section-title">Investigation outcome</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Outcome</label>
+          <select id="f-outcome">
+            <option value="Pending">Pending</option>
+            <option value="Not confirmed">Not confirmed</option>
+            <option value="Confirmed - First instance">Confirmed - First instance</option>
+            <option value="Confirmed - Repeat">Confirmed - Repeat</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Stage reached</label>
+          <select id="f-stage">
+            <option>Pre-investigation</option>
+            <option>Stage 1</option>
+            <option>Stage 2</option>
+            <option>Stage 3</option>
+            <option>Stage 4</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Stage 1 — formal disclosure request (Ibra)</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Date sent</label>
+          <input type="date" id="f-stage1Sent">
+        </div>
+        <div class="field-group">
+          <label>Disclosure deadline (auto: +3 working days)</label>
+          <input type="text" id="f-stage1Deadline" disabled>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Complied by deadline?</label>
+        <select id="f-complied">
+          <option value="Pending">Pending</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+          <option value="N/A">N/A</option>
+        </select>
+      </div>
+
+      <div class="section-title">Stage 2 — Ibra &amp; Dimitra joint decision</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Decision date</label>
+          <input type="date" id="f-stage2Date">
+        </div>
+        <div class="field-group">
+          <label>Decision</label>
+          <select id="f-stage2Decision">
+            <option value="Pending">Pending</option>
+            <option value="Warning">Formal warning</option>
+            <option value="Fee/Bonus action">Fee recovery / bonus loss</option>
+            <option value="Termination">Termination</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-group conditional" id="wrap-feeAmount">
+        <label>Fee invoiced (&pound;) — clause 6.1 / 6.7</label>
+        <input type="number" id="f-feeAmount" placeholder="0.00" step="0.01">
+      </div>
+      <div class="field-group conditional" id="wrap-bonusAffected">
+        <label>Success bonus eligibility affected? — clause 13.5</label>
+        <select id="f-bonusAffected">
+          <option value="No">No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+
+      <div class="section-title">Stage 3 &amp; 4 — continued breach / termination</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Stage 3 review date</label>
+          <input type="date" id="f-stage3Date">
+        </div>
+        <div class="field-group">
+          <label>Stage 4 termination date</label>
+          <input type="date" id="f-stage4Date">
+        </div>
+      </div>
+
+      <div class="section-title">Current account status</div>
+      <div class="field-group">
+        <select id="f-accountStatus">
+          <option>Active</option>
+          <option>Restricted</option>
+          <option>Suspended</option>
+          <option>Terminated</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label><input type="checkbox" id="f-repeatCase" style="width:auto; margin-right:6px;">Mark as repeat case</label>
+        <div class="hint">Any party with a prior confirmed instance is treated as repeat immediately on any new signal (moves straight to Stage 3).</div>
+      </div>
+
+      <div class="section-title">Running notes log</div>
+      <div class="notes-log" id="notes-log"></div>
+      <div class="add-note-row">
+        <textarea id="new-note-text" placeholder="Add a timestamped note..."></textarea>
+        <button class="btn secondary" id="add-note-btn">Add</button>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn danger" id="delete-case-btn" style="display:none;">Delete case</button>
+      <div style="flex:1;"></div>
+      <button class="btn secondary" id="cancel-btn">Cancel</button>
+      <button class="btn" id="save-case-btn">Save case</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CURRENT_USER = {{ who|tojson }};
+const TRIGGERS = [
+  'Withdrawn/deleted shift with no clear reason',
+  '"Ongoing" language vs thin booking history',
+  'Payment-chasing enquiry for off-platform shift',
+  'Booking activity dropped off after one placement',
+  'Contact details exchanged unusually early',
+  'Language suggesting arranging "directly"/"outside"',
+  'Third-party report (locum/practice/staff)',
+  'Locum failed to report direct practice contact (15.4)'
+];
+
+let cases = [];
+let currentCaseId = null;
+let currentNotes = [];
+
+function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function addWorkingDays(dateStr, days) {
+  if (!dateStr) return '';
+  let d = new Date(dateStr + 'T00:00:00');
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) added++;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+async function loadCases() {
+  document.getElementById('table-wrap').innerHTML = '<div class="loading-msg">Loading cases...</div>';
+  try {
+    const res = await fetch('/api/cases');
+    if (!res.ok) throw new Error('failed');
+    cases = await res.json();
+  } catch (e) {
+    cases = [];
+    toast('Could not load cases');
+  }
+  renderSummary();
+  renderTable();
+}
+
+async function saveCase(caseObj) {
+  const res = await fetch('/api/cases', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(caseObj)
+  });
+  if (!res.ok) throw new Error('save failed');
+  return res.json();
+}
+
+async function deleteCaseApi(id) {
+  const res = await fetch('/api/cases/' + id, { method: 'DELETE' });
+  if (!res.ok) throw new Error('delete failed');
+}
+
+function renderSummary() {
+  const total = cases.length;
+  const open = cases.filter(c => ['Pre-investigation','Stage 1','Stage 2','Stage 3'].includes(c.stage) && c.accountStatus !== 'Terminated').length;
+  const repeats = cases.filter(c => c.repeatCase).length;
+  const terminated = cases.filter(c => c.accountStatus === 'Terminated').length;
+  const overdue = cases.filter(c => {
+    if (c.stage !== 'Stage 1' || c.complied === 'Yes' || c.complied === 'N/A') return false;
+    if (!c.stage1Deadline) return false;
+    return c.stage1Deadline < new Date().toISOString().slice(0, 10);
+  }).length;
+  const thisMonth = cases.filter(c => (c.dateFlagged || '').slice(0, 7) === new Date().toISOString().slice(0, 7)).length;
+
+  const strip = document.getElementById('summary-strip');
+  strip.innerHTML = '';
+  const metrics = [
+    ['Total cases', total, ''],
+    ['Open / in progress', open, ''],
+    ['Overdue Stage 1 replies', overdue, overdue > 0 ? 'warn' : ''],
+    ['Repeat cases', repeats, repeats > 0 ? 'warn' : ''],
+    ['Terminated accounts', terminated, terminated > 0 ? 'danger' : ''],
+    ['Flagged this month', thisMonth, '']
+  ];
+  metrics.forEach(([label, val, cls]) => {
+    const div = document.createElement('div');
+    div.className = 'metric ' + cls;
+    div.innerHTML = '<div class="label">' + label + '</div><div class="value">' + val + '</div>';
+    strip.appendChild(div);
+  });
+}
+
+function pillFor(type, value) {
+  const map = {
+    party: { Practice: 'pill-practice', Locum: 'pill-locum' },
+    status: { Active: 'pill-active', Restricted: 'pill-restricted', Suspended: 'pill-suspended', Terminated: 'pill-terminated' },
+    outcome: {
+      'Pending': 'pill-pending', 'Not confirmed': 'pill-notconfirmed',
+      'Confirmed - First instance': 'pill-confirmed1', 'Confirmed - Repeat': 'pill-confirmedrepeat'
+    }
+  };
+  const cls = (map[type] && map[type][value]) || 'pill-pending';
+  return '<span class="pill ' + cls + '">' + value + '</span>';
+}
+
+function renderTable() {
+  const wrap = document.getElementById('table-wrap');
+  const fParty = document.getElementById('filter-party').value;
+  const fStage = document.getElementById('filter-stage').value;
+  const fOutcome = document.getElementById('filter-outcome').value;
+  const fStatus = document.getElementById('filter-status').value;
+  const q = document.getElementById('search-box').value.trim().toLowerCase();
+
+  let rows = cases.filter(c => {
+    if (fParty && c.partyType !== fParty) return false;
+    if (fStage && c.stage !== fStage) return false;
+    if (fOutcome && c.outcome !== fOutcome) return false;
+    if (fStatus && c.accountStatus !== fStatus) return false;
+    if (q) {
+      const hay = ((c.practiceName || '') + ' ' + (c.locumNames || '')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!cases.length) {
+    wrap.innerHTML = '<div class="empty-state">No cases logged yet.<br>Start tracking as soon as a trigger is spotted.' +
+      '<div><button class="btn" onclick="document.getElementById(\'new-case-btn\').click()">+ Log first case</button></div></div>';
+    return;
+  }
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="empty-state">No cases match these filters.</div>';
+    return;
+  }
+
+  let html = '<table><thead><tr>' +
+    '<th>Party</th><th>Practice</th><th>Locum(s)</th><th>Flagged</th><th>By</th>' +
+    '<th>Stage</th><th>Outcome</th><th>Status</th><th>Repeat</th><th>Updated by</th>' +
+    '</tr></thead><tbody>';
+
+  rows.forEach(c => {
+    html += '<tr onclick="openCase(\'' + c.id + '\')">' +
+      '<td>' + pillFor('party', c.partyType) + '</td>' +
+      '<td>' + (c.practiceName || '&mdash;') + '</td>' +
+      '<td>' + (c.locumNames || '&mdash;') + '</td>' +
+      '<td>' + (c.dateFlagged || '&mdash;') + '</td>' +
+      '<td>' + (c.flaggedBy || '&mdash;') + '</td>' +
+      '<td>' + (c.stage || '&mdash;') + '</td>' +
+      '<td>' + pillFor('outcome', c.outcome || 'Pending') + '</td>' +
+      '<td>' + pillFor('status', c.accountStatus || 'Active') + '</td>' +
+      '<td>' + (c.repeatCase ? '<span class="pill pill-repeat">Repeat</span>' : '') + '</td>' +
+      '<td>' + (c.updatedBy || '&mdash;') + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function buildTriggerCheckboxes(selected) {
+  const container = document.getElementById('trigger-checkboxes');
+  container.innerHTML = '';
+  TRIGGERS.forEach((t, i) => {
+    const id = 'trig-' + i;
+    const row = document.createElement('label');
+    row.className = 'checkbox-row';
+    row.innerHTML = '<input type="checkbox" id="' + id + '" value="' + t.replace(/"/g,'&quot;') + '" ' +
+      ((selected || []).includes(t) ? 'checked' : '') + '>' + '<span>' + t + '</span>';
+    container.appendChild(row);
+  });
+}
+
+function getCheckedTriggers() {
+  return TRIGGERS.filter((t, i) => document.getElementById('trig-' + i).checked);
+}
+
+function toggleConditionalFields() {
+  const partyType = document.getElementById('f-partyType').value;
+  document.getElementById('wrap-feeAmount').classList.toggle('show', partyType === 'Practice');
+  document.getElementById('wrap-bonusAffected').classList.toggle('show', partyType === 'Locum');
+}
+
+function checkRepeatSuggestion() {
+  const practice = document.getElementById('f-practiceName').value.trim().toLowerCase();
+  const locum = document.getElementById('f-locumNames').value.trim().toLowerCase();
+  const flag = document.getElementById('repeat-flag');
+  if (!practice && !locum) { flag.classList.remove('show'); return; }
+  const priorConfirmed = cases.filter(c => {
+    if (c.id === currentCaseId) return false;
+    if (!(c.outcome || '').startsWith('Confirmed')) return false;
+    const pMatch = practice && (c.practiceName || '').trim().toLowerCase() === practice;
+    const lMatch = locum && (c.locumNames || '').trim().toLowerCase().includes(locum);
+    return pMatch || lMatch;
+  });
+  if (priorConfirmed.length) {
+    flag.classList.add('show');
+    flag.innerHTML = '<strong>Repeat signal:</strong> ' + priorConfirmed.length +
+      ' prior confirmed case(s) found for this practice/locum. Per the SOP this should move straight to Stage 3. ' +
+      '<a href="#" onclick="document.getElementById(\'f-repeatCase\').checked=true; return false;">Mark as repeat</a>';
+  } else {
+    flag.classList.remove('show');
+  }
+}
+
+function renderNotes() {
+  const log = document.getElementById('notes-log');
+  if (!currentNotes.length) { log.innerHTML = '<div class="hint">No notes yet.</div>'; return; }
+  log.innerHTML = currentNotes.map(n =>
+    '<div class="note-entry"><div class="meta">' + n.ts.replace('T', ' ').slice(0, 16) + ' &middot; ' + (n.author || 'Unknown') + '</div>' + n.text + '</div>'
+  ).reverse().join('');
+}
+
+function openCase(id) {
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  currentCaseId = id;
+  currentNotes = c.notes || [];
+  document.getElementById('drawer-title').textContent = (c.practiceName || c.locumNames || 'Case');
+  document.getElementById('f-partyType').value = c.partyType || 'Practice';
+  document.getElementById('f-practiceName').value = c.practiceName || '';
+  document.getElementById('f-locumNames').value = c.locumNames || '';
+  document.getElementById('f-dateFlagged').value = c.dateFlagged || '';
+  document.getElementById('f-flaggedBy').value = c.flaggedBy || 'Dona';
+  buildTriggerCheckboxes(c.triggers || []);
+  document.getElementById('f-evidenceSummary').value = c.evidenceSummary || '';
+  document.getElementById('f-evidenceLocation').value = c.evidenceLocation || '';
+  document.getElementById('f-outcome').value = c.outcome || 'Pending';
+  document.getElementById('f-stage').value = c.stage || 'Pre-investigation';
+  document.getElementById('f-stage1Sent').value = c.stage1Sent || '';
+  document.getElementById('f-stage1Deadline').value = c.stage1Deadline || '';
+  document.getElementById('f-complied').value = c.complied || 'Pending';
+  document.getElementById('f-stage2Date').value = c.stage2Date || '';
+  document.getElementById('f-stage2Decision').value = c.stage2Decision || 'Pending';
+  document.getElementById('f-feeAmount').value = c.feeAmount || '';
+  document.getElementById('f-bonusAffected').value = c.bonusAffected || 'No';
+  document.getElementById('f-stage3Date').value = c.stage3Date || '';
+  document.getElementById('f-stage4Date').value = c.stage4Date || '';
+  document.getElementById('f-accountStatus').value = c.accountStatus || 'Active';
+  document.getElementById('f-repeatCase').checked = !!c.repeatCase;
+  toggleConditionalFields();
+  renderNotes();
+  document.getElementById('repeat-flag').classList.remove('show');
+  document.getElementById('delete-case-btn').style.display = 'inline-block';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function openNewCase() {
+  currentCaseId = null;
+  currentNotes = [];
+  document.getElementById('drawer-title').textContent = 'New case';
+  document.getElementById('f-partyType').value = 'Practice';
+  document.getElementById('f-practiceName').value = '';
+  document.getElementById('f-locumNames').value = '';
+  document.getElementById('f-dateFlagged').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('f-flaggedBy').value = ['Dona','Katy','Ibra','Dimitra'].includes(CURRENT_USER) ? CURRENT_USER : 'Dona';
+  buildTriggerCheckboxes([]);
+  document.getElementById('f-evidenceSummary').value = '';
+  document.getElementById('f-evidenceLocation').value = '';
+  document.getElementById('f-outcome').value = 'Pending';
+  document.getElementById('f-stage').value = 'Pre-investigation';
+  document.getElementById('f-stage1Sent').value = '';
+  document.getElementById('f-stage1Deadline').value = '';
+  document.getElementById('f-complied').value = 'Pending';
+  document.getElementById('f-stage2Date').value = '';
+  document.getElementById('f-stage2Decision').value = 'Pending';
+  document.getElementById('f-feeAmount').value = '';
+  document.getElementById('f-bonusAffected').value = 'No';
+  document.getElementById('f-stage3Date').value = '';
+  document.getElementById('f-stage4Date').value = '';
+  document.getElementById('f-accountStatus').value = 'Active';
+  document.getElementById('f-repeatCase').checked = false;
+  toggleConditionalFields();
+  renderNotes();
+  document.getElementById('repeat-flag').classList.remove('show');
+  document.getElementById('delete-case-btn').style.display = 'none';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeDrawer() { document.getElementById('overlay').classList.remove('show'); }
+
+async function handleSave() {
+  const id = currentCaseId || uid();
+  const caseObj = {
+    id: id,
+    partyType: document.getElementById('f-partyType').value,
+    practiceName: document.getElementById('f-practiceName').value.trim(),
+    locumNames: document.getElementById('f-locumNames').value.trim(),
+    dateFlagged: document.getElementById('f-dateFlagged').value,
+    flaggedBy: document.getElementById('f-flaggedBy').value,
+    triggers: getCheckedTriggers(),
+    evidenceSummary: document.getElementById('f-evidenceSummary').value.trim(),
+    evidenceLocation: document.getElementById('f-evidenceLocation').value.trim(),
+    outcome: document.getElementById('f-outcome').value,
+    stage: document.getElementById('f-stage').value,
+    stage1Sent: document.getElementById('f-stage1Sent').value,
+    stage1Deadline: document.getElementById('f-stage1Deadline').value,
+    complied: document.getElementById('f-complied').value,
+    stage2Date: document.getElementById('f-stage2Date').value,
+    stage2Decision: document.getElementById('f-stage2Decision').value,
+    feeAmount: document.getElementById('f-feeAmount').value,
+    bonusAffected: document.getElementById('f-bonusAffected').value,
+    stage3Date: document.getElementById('f-stage3Date').value,
+    stage4Date: document.getElementById('f-stage4Date').value,
+    accountStatus: document.getElementById('f-accountStatus').value,
+    repeatCase: document.getElementById('f-repeatCase').checked,
+    notes: currentNotes
+  };
+  try {
+    await saveCase(caseObj);
+    toast('Case saved');
+    closeDrawer();
+    await loadCases();
+  } catch (e) {
+    toast('Could not save — try again');
+  }
+}
+
+async function handleDelete() {
+  if (!currentCaseId) return;
+  if (!confirm('Delete this case? This cannot be undone.')) return;
+  try {
+    await deleteCaseApi(currentCaseId);
+    toast('Case deleted');
+    closeDrawer();
+    await loadCases();
+  } catch (e) {
+    toast('Could not delete — try again');
+  }
+}
+
+function handleAddNote() {
+  const text = document.getElementById('new-note-text').value.trim();
+  if (!text) return;
+  currentNotes.push({ ts: new Date().toISOString(), author: CURRENT_USER || 'Unknown', text: text });
+  document.getElementById('new-note-text').value = '';
+  renderNotes();
+}
+
+document.getElementById('new-case-btn').addEventListener('click', openNewCase);
+document.getElementById('close-drawer').addEventListener('click', closeDrawer);
+document.getElementById('cancel-btn').addEventListener('click', closeDrawer);
+document.getElementById('save-case-btn').addEventListener('click', handleSave);
+document.getElementById('delete-case-btn').addEventListener('click', handleDelete);
+document.getElementById('add-note-btn').addEventListener('click', handleAddNote);
+document.getElementById('refresh-btn').addEventListener('click', loadCases);
+document.getElementById('f-partyType').addEventListener('change', toggleConditionalFields);
+document.getElementById('f-practiceName').addEventListener('input', checkRepeatSuggestion);
+document.getElementById('f-locumNames').addEventListener('input', checkRepeatSuggestion);
+document.getElementById('f-stage1Sent').addEventListener('change', function() {
+  document.getElementById('f-stage1Deadline').value = addWorkingDays(this.value, 3);
+});
+['filter-party','filter-stage','filter-outcome','filter-status'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderTable);
+});
+document.getElementById('search-box').addEventListener('input', renderTable);
+document.getElementById('overlay').addEventListener('click', function(e) { if (e.target === this) closeDrawer(); });
+
+loadCases();
+</script>
+
+</body>
+</html>

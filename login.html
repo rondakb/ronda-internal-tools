@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ronda Internal Tools — Sign in</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #2E002E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 36px 32px;
+    width: 340px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  }
+  .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .logo-dot { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #8C3EF6; }
+  h1 { font-size: 17px; color: #2E002E; margin: 0; }
+  p.sub { font-size: 12px; color: #6B6570; margin: 4px 0 24px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: #2E002E; margin-bottom: 5px; margin-top: 14px; }
+  input {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid #E4E1E8;
+    border-radius: 6px;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  button {
+    width: 100%;
+    background: #8C3EF6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 22px;
+    cursor: pointer;
+  }
+  button:hover { background: #7a2ee0; }
+  .error {
+    background: #FBEAEA;
+    color: #C0392B;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <div class="logo-dot"></div>
+      <h1>Ronda Internal Tools</h1>
+    </div>
+    <p class="sub">Off-Platform Tracker &middot; Knowledge Base</p>
+    <form method="POST">
+      <label>Your name</label>
+      <input type="text" name="name" placeholder="e.g. Dona" required>
+      <label>Team password</label>
+      <input type="password" name="password" required>
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
+</body>
+</html>
